@@ -42,42 +42,31 @@ def switch_workspace(fd, workspace):
     fd.write("WORKDIR " + workspace)
     fd.write("\n")
 
-def install_program(fd, prog_link, prog_dir, compile_method, prog_install):
+def install_program(fd, prog_link, compile_method, prog_install):
     fd.write("RUN wget " + prog_link + "; \\")
     fd.write("\n")
 
     prog_name = os.path.basename(prog_link)
 
     if prog_name.endswith("tar.gz"):
+        prog_dir=prog_name.split('.tar.gz')[0]
         fd.write("tar -xvf " + prog_name + "; \\")
         fd.write("\n")
     elif prog_name.endswith("zip"):
+        prog_dir=prog_name.split('.zip')[0]
         fd.write("unzip " + prog_name + "; \\")
         fd.write("\n")
     else :
         print(prog_name, "has unsupported compression format")
-
     fd.write("cd " + prog_dir + "; \\")
     fd.write("\n")
 
-#初始版本
-    # if compile_method == "make":
-        # fd.write("make; \\")
-        # fd.write("\n")
-    # else :
-        # print(compile_method, "is not supported")
-#改进版本
-    fd.write(compile_method)
-    fd.write(";")
-    fd.write("\n")
-    
-    # if prog_install:
-        # fd.write("make install;")
-    # else :
-        # fd.write("clear;")
-
-    # fd.write("\n")
-
+    if compile_method == "make":
+        fd.write("make && ")
+        fd.write(prog_install)
+        fd.write("; \n")
+    else :
+        print(compile_method, "is not supported")
 def deploy_poc(fd, poc_link, deploy):
     fd.write("RUN wget " + poc_link + "; \\")
     fd.write("\n")
@@ -129,12 +118,11 @@ def main():
         switch_workspace(fd, workspace)
 
         prog_link = config.get("Source Code", "link")
-        prog_dir = config.get("Source Code", "directory")
         compile_method = config.get("Source Code", "compilation")
-        prog_install = config.getboolean("Source Code", "install")
+        prog_install = config.get("Source Code", "install")
         binary_pos = config.get("Source Code", "vul_binary_pos")
 
-        install_program(fd, prog_link, prog_dir, compile_method, prog_install)
+        install_program(fd, prog_link, compile_method, prog_install)
 
         poc_link = config.get("PoC", "link")
         deploy = config.get("PoC", "deploy")
