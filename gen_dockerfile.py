@@ -87,7 +87,7 @@ def clean_cache_by_sys(fd, linux):
         # yum clean all
 
 
-def main():
+def gen_file():
     print("Read config file and generate one Dockerfile")
 
     clean_cache = False
@@ -136,6 +136,3 @@ def main():
         add_trigger_method(fd, trigger)
 
     print("Finish Dockerfile generation")
-
-if __name__ == '__main__':
-    main()
