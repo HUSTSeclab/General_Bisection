@@ -2,9 +2,14 @@
 # -*- coding: utf-8 -*-
 from gen_dockerfile import *
 import subprocess
+#生成的配置文件的文件名
 target_file='config.ini'
+#创建镜像和运行容器的命令
+build_cmd='sudo docker build -t a_image_docker /home/seed'
+run_cmd='sudo docker run a_image_docker'
 
 #environment
+#参数：sys,sys_tag,update,dependencies,workspace
 def gen_environment (fd):   #生成ini文件中的Environment项
     sys='debian'
     sys_tag='latest'
@@ -26,6 +31,7 @@ def gen_environment (fd):   #生成ini文件中的Environment项
 
 
 #source code
+#参数：compilation,install,vul_binary_pos
 def gen_source_code(fd,version_link,gen_link,version_number):    #生成ini文件中的Source Code项
     compilation='make'
     install='make install || : && make check || : && make install || :'
@@ -42,6 +48,8 @@ def gen_source_code(fd,version_link,gen_link,version_number):    #生成ini文�
 
 
 #poc
+#参数：link,deploy,trigger
+#注意，若没有deploy命令，则用空指令:填充
 def gen_PoC(fd):    #生成ini文件中的PoC项
     link='https://raw.githubusercontent.com/liruochen-coding/LinuxFlaw/master/CVE-2015-8106/exploit.tex'
     deploy=':'
@@ -57,6 +65,7 @@ def gen_PoC(fd):    #生成ini文件中的PoC项
    
     
 #version dictionary
+#将软件的版本号和对应的下载链接存入字典
 def gen_version():     #版本号与下载链接作为键值对所对应的字典，版本2.3.9不存在
     version_link=dict()
     version_link['2.3.0']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.0/latex2rtf-2.3.0.tar.gz'
@@ -78,6 +87,13 @@ def gen_version():     #版本号与下载链接作为键值对所对应的字�
     version_link['2.3.17']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.17/latex2rtf-2.3.17.tar.gz'
     version_link['2.3.18']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.18/latex2rtf-2.3.18a.tar.gz'
     return version_link
+
+#将版本号升序存储在列表中，便于用下标访问
+def gen_version_list(v_list):
+    for number in range(0,19): #按照版本序号升序创建列表，版本2.3.9不存在
+        if number==9:
+            continue
+        v_list.append("2.3.%s"%number)
 
 
 def find_version(version_link,gen_link):     #二分查找具有漏洞的版本范围，第一个参数为版本号与链接对应的字典，第二个参数为版本号对应的列表
@@ -103,7 +119,7 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
                 fd.seek(0)   #将文件指针置头以读取文件
                 gen_file()   #产生dockerfile文件    
      
-                result0=subprocess.run("sudo docker build -t a_image_docker /home/seed",shell=True,stdout=subprocess.PIPE)
+                result0=subprocess.run(build_cmd,shell=True,stdout=subprocess.PIPE)
                 if result0.returncode!=0: #容器创建失败
                     flag=False
                     print("falied to build the docker "+gen_link[mid]+"!")
@@ -111,7 +127,7 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
                     flag=True
                     print("Sucessfully build the docker "+gen_link[mid]+"!")
 
-                result=subprocess.run("sudo docker run a_image_docker",shell=True,stdout=subprocess.PIPE)
+                result=subprocess.run(run_cmd,shell=True,stdout=subprocess.PIPE)
                 if result.returncode==139:   #当有漏洞时程序异常终止，returncode返回139
                     flag=True
                     print("version "+gen_link[mid]+" exsits the vulnerability !\n")  
@@ -142,14 +158,14 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
                 gen_PoC(fd)
                 fd.seek(0)
                 gen_file()
-                result0=subprocess.run("sudo docker build -t a_image_docker /home/seed",shell=True,stdout=subprocess.PIPE)
+                result0=subprocess.run(build_cmd,shell=True,stdout=subprocess.PIPE)
                 if result0.returncode!=0:
                     flag=False
                     print("falied to build the docker "+gen_link[mid]+"!")
                 else:
                     flag=True
                     print("Sucessfully build the docker"+gen_link[mid]+"!")
-                result=subprocess.run("sudo docker run a_image_docker ",shell=True,stdout=subprocess.PIPE)
+                result=subprocess.run(run_cmd,shell=True,stdout=subprocess.PIPE)
                 if result.returncode==139:
                     flag=True 
                     print("version "+gen_link[mid]+" exsits the vulnerability !\n") 
@@ -170,18 +186,11 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
 def main():
     version_link=gen_version()  #产生字典
 
-    gen_link=list()  #将版本号存储在列表中，便于用下标访问
-    for number in range(0,19): #按照版本序号顺序创建列表，版本2.3.9不存在
-        if number==9:
-            continue
-        gen_link.append("2.3.%s"%number)
+    gen_link=list() #版本号列表
+    gen_version_list(gen_link)
 
     find_version(version_link,gen_link)  #二分查找具有漏洞的版本范围
 
 
 if __name__=='__main__':
     main()
-
-#用上述信息批量生成config.ini文件，自动替换软件version和对应的link
-#使用config.ini生成dockerfile
-#随后向linux终端输入使用dockerfile创建镜像的命令，并读取终端的返回信息（可以使用subprocess.check_output()）
