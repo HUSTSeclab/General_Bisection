@@ -45,22 +45,24 @@ def switch_workspace(fd, workspace):
 def install_program(fd, prog_link, compile_method, prog_install):
     fd.write("RUN wget " + prog_link + "; \\")
     fd.write("\n")
+    #将压缩包解压到以下目录
+    fd.write("mkdir targetsoftware; \\")
+    fd.write("\n")
 
     prog_name = os.path.basename(prog_link)
 
     if prog_name.endswith("tar.gz"):
         prog_dir=prog_name.split('.tar.gz')[0]
-        fd.write("tar -xvf " + prog_name + "; \\")
+        fd.write("tar -xvf " + prog_name + " -C targetsoftware --strip-components 1; \\")
+        #-C指定解压目录 --strip-components去除原有目录结构
         fd.write("\n")
     elif prog_name.endswith("zip"):
         prog_dir=prog_name.split('.zip')[0]
-        fd.write("unzip " + prog_name + "; \\")
+        fd.write("unzip -j " + prog_name + " -d targetsoftware; \\")
+        #-j去除目录结构 -d指定解压目录
         fd.write("\n")
     else :
         print(prog_name, "has unsupported compression format")
-    #change the name of the directory
-    fd.write("mv " + prog_dir + " targetsoftware; \\")
-    fd.write("\n")
     fd.write("cd targetsoftware; \\" )
     fd.write("\n")
 
