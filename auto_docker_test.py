@@ -34,7 +34,7 @@ def gen_environment (fd):   #生成ini文件中的Environment项
 #参数：compilation,install,vul_binary_pos
 def gen_source_code(fd,version_link,gen_link,version_number):    #生成ini文件中的Source Code项
     compilation='make'
-    install='make install || : && cp /root/latex2rtf-2.3.8/latex2rtf /usr/local/bin/ && mkdir /usr/local/share/latex2rtf && cp -r /root/latex2rtf-2.3.8/cfg/ /usr/local/share/latex2rtf/cfg/'
+    install='make install || : && cp /root/targetsoftware/latex2rtf /usr/local/bin/ && mkdir /usr/local/share/latex2rtf && cp -r /root/targetsoftware/cfg/ /usr/local/share/latex2rtf/cfg/'
 #Bugs about installing latex2rtf:
 #     "  If you nevertheless need to run install from the sources, note the following:
 #     If your 'mkdir' doesn't support the '-p' option, then create the

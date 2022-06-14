@@ -58,7 +58,10 @@ def install_program(fd, prog_link, compile_method, prog_install):
         fd.write("\n")
     else :
         print(prog_name, "has unsupported compression format")
-    fd.write("cd " + prog_dir + "; \\")
+    #change the name of the directory
+    fd.write("mv " + prog_dir + " targetsoftware; \\")
+    fd.write("\n")
+    fd.write("cd targetsoftware; \\" )
     fd.write("\n")
 
     if compile_method == "make":
