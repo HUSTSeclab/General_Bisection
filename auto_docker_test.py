@@ -76,6 +76,11 @@ def gen_PoC(fd):    #生成ini文件中的PoC项
 #将软件的版本号和对应的下载链接存入字典
 def gen_version():     #版本号与下载链接作为键值对所对应的字典，版本2.3.9不存在
     version_link=dict()
+    version_link['2.0.0']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.0.0/latex2rtf-2.0.0.tar.gz'
+    version_link['2.1.0']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.1.0/latex2rtf-2.1.0.tar.gz'
+    version_link['2.1.1']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.1.1/latex2rtf-2.1.1beta8.tar.gz'
+    version_link['2.2.0']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.2.0/latex2rtf-2.2.0.tar.gz'
+    version_link['2.2.1']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.2.1/latex2rtf-2.2.1.tar.gz'
     version_link['2.3.0']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.0/latex2rtf-2.3.0.tar.gz'
     version_link['2.3.1']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.1/latex2rtf-2.3.1.tar.gz'
     version_link['2.3.2']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.2/latex2rtf-2.3.2.tar.gz'
