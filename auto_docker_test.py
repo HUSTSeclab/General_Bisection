@@ -5,8 +5,8 @@ import subprocess
 #生成的配置文件的文件名
 target_file='config.ini'
 #创建镜像和运行容器的命令
-build_cmd='sudo docker build -t a_image_docker /home/seed'
-run_cmd='sudo docker run a_image_docker'
+build_cmd=r'sudo docker build -t a_image_docker /home/seed'
+run_cmd=r'sudo docker run a_image_docker'
 
 #environment
 #参数：sys,sys_tag,update,dependencies,workspace
@@ -34,7 +34,7 @@ def gen_environment (fd):   #生成ini文件中的Environment项
 #参数：compilation,install,vul_binary_pos
 def gen_source_code(fd,version_link,gen_link,version_number):    #生成ini文件中的Source Code项
     compilation='make'
-    install='make install || ( cp /root/targetsoftware/latex2rtf /usr/local/bin/ && mkdir /usr/local/share/latex2rtf && cp -r /root/targetsoftware/cfg/ /usr/local/share/latex2rtf/cfg/)'
+    install='make install || (cp /root/targetsoftware/latex2rtf /usr/local/bin/ && mkdir /usr/local/share/latex2rtf && cp -r /root/targetsoftware/cfg/ /usr/local/share/latex2rtf/cfg/)'
 #Bugs about installing latex2rtf:
 #     "  If you nevertheless need to run install from the sources, note the following:
 #     If your 'mkdir' doesn't support the '-p' option, then create the
@@ -85,7 +85,7 @@ def gen_version():     #版本号与下载链接作为键值对所对应的字�
     version_link['2.3.6']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.6/latex2rtf-2.3.6.tar.gz'
     version_link['2.3.7']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.7/latex2rtf-2.3.7a.tar.gz'
     version_link['2.3.8']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.8/latex2rtf-2.3.8.tar.gz'
-    version_link['2.3.10']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.10/latex2rtf-2.3.10.tar.gz'
+    #version_link['2.3.10']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.10/latex2rtf-2.3.10.tar.gz'
     version_link['2.3.11']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.11/latex2rtf-2.3.11a.tar.gz'
     version_link['2.3.12']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.12/latex2rtf-2.3.12.tar.gz'
     version_link['2.3.13']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.13/latex2rtf-2.3.13a.tar.gz'
@@ -99,7 +99,7 @@ def gen_version():     #版本号与下载链接作为键值对所对应的字�
 #将版本号升序存储在列表中，便于用下标访问
 def gen_version_list(v_list):
     for number in range(0,19): #按照版本序号升序创建列表，版本2.3.9不存在
-        if number==9:
+        if number==9 or number==10:
             continue
         v_list.append("2.3.%s"%number)
 
@@ -113,7 +113,7 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
     max_version=8  #具有漏洞的最大版本号,仅当检测到新的有漏洞的版本，才给min_version赋值，故赋初值为8
     flag=True   #判断是否有漏洞，flag=True时说明存在漏洞
 
-    while left<model:    #查找2.3.8版本及其左边的版本范围
+    while left<=model:    #查找2.3.8版本及其左边的版本范围
         with open(target_file, "w+") as fd:   #找不到或无法创建config.ini文件退出
             if not os.path.exists(target_file):
                 print("No target file!")
@@ -142,7 +142,8 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
                 else :
                     flag=False          #其他情况代表无漏洞
                     print("version "+gen_link[mid]+" doesn't exsit the vulnerability !\n")
-        if flag==True:    #如果该版本有漏洞，则查找的右边界model为该版本序号，同时置最小版本为该值
+
+        if flag==True:    #如果该版本有漏洞，则查找的右边界model为该版本序号，同时置最小版本为该版本序号
             model=mid
             min_version=mid
             print("\n"+gen_link[min_version]+"\n")
@@ -150,10 +151,12 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
         else :            #没有漏洞，查找的左边界为mid+1（由于mid=(left+model)//2,其中的//为向下取整，
             left=mid+1    #故当left=model-1，且flag!=True的特殊情况时，mid=left，若采用left=mid的表达式，
             fd.close()    #系统会卡在left=mid的循环中，故采用left=mid+1）
+        if left==model and model==mid:
+            break
             
     model=8
     flag=False
-    while right>model:      #查找2.3.8版本及其右边的版本范围，右边二分查找原理与左边相同
+    while right>=model:      #查找2.3.8版本及其右边的版本范围，右边二分查找原理与左边相同
         with open(target_file, "w+") as fd:
             if not os.path.exists(target_file):
                 print("No target file!")
@@ -180,14 +183,18 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
                 else :
                     flag=False
                     print("version "+gen_link[mid]+" doesn't exsit the vulnerability !\n")
+        if model==right:
+            break
         if  flag==False:    #表示该版本没有漏洞
             right=mid-1
             fd.close()
         else :
-            model=mid
+            model=mid+1
             max_version=mid
             print("\n"+gen_link[max_version]+"\n")
             fd.close()
+        if right==model and model==mid:
+            break
     print("the versions ranging from "+gen_link[min_version] +" to "+ gen_link[max_version]+" exsit the vulnerability\n")  #打印出漏洞所在版本范围
 
 
