@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from gen_dockerfile import *
+from functools import *
 import subprocess
 #生成的配置文件的文件名
 target_file='config.ini'
@@ -101,21 +102,36 @@ def gen_version():     #版本号与下载链接作为键值对所对应的字�
     version_link['2.3.18']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.18/latex2rtf-2.3.18a.tar.gz'
     return version_link
 
-#将版本号升序存储在列表中，便于用下标访问
-def gen_version_list(v_list):
-    for number in range(0,19): #按照版本序号升序创建列表，版本2.3.9不存在
-        if number==9 or number==10:
-            continue
-        v_list.append("2.3.%s"%number)
+
+def sort_rule(str1,str2): #用于比较两个版本的前后，根据“.”分割字符串从前往后比较，数字大的版本靠后
+    arr1=str1.split(".")
+    arr2=str2.split(".")
+    temp1=0
+    temp2=0
+    length=len(arr1)
+    for i in range(0,length):
+        temp1=int(arr1[i])
+        temp2=int(arr2[i])
+        if temp1 > temp2:
+            return 1
+        elif temp1 < temp2:
+            return -1
+
+
+def gen_version_list(v_list,version_link):   #将版本号升序存储在列表中，便于用下标访问
+   for i in version_link.keys():
+       v_list.append(i)
+   v_list.sort(key=cmp_to_key(sort_rule)) #由于虚拟机里字典的keys函数取出来的键是随机的，故需要进行排序
 
 
 def find_version(version_link,gen_link):     #二分查找具有漏洞的版本范围，第一个参数为版本号与链接对应的字典，第二个参数为版本号对应的列表
     left=0
     right=len(gen_link)-1
     mid=0      #作为查找左右范围的中间变量
-    model=8   #已知版本2.3.8具有漏洞，从该版本左右各进行范围查找，并将该版本作为左右查找的一个边界
-    min_version=8  #具有漏洞的最小版本号,仅当检测到新的有漏洞的版本，才给min_version赋值，故赋初值为8
-    max_version=8  #具有漏洞的最大版本号,仅当检测到新的有漏洞的版本，才给min_version赋值，故赋初值为8
+    initial_version=gen_link.index("2.3.8") #从2.3.8版本开始二分查找漏洞
+    model=initial_version   #已知版本2.3.8具有漏洞，从该版本左右各进行范围查找，并将该版本作为左右查找的一个边界
+    min_version=initial_version  #具有漏洞的最小版本号,仅当检测到新的有漏洞的版本，才给min_version赋值，故赋初值为8
+    max_version=initial_version  #具有漏洞的最大版本号,仅当检测到新的有漏洞的版本，才给min_version赋值，故赋初值为8
     flag=True   #判断是否有漏洞，flag=True时说明存在漏洞
 
     while left<=model:    #查找2.3.8版本及其左边的版本范围
@@ -159,7 +175,7 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
         if left==model and model==mid:
             break
             
-    model=8
+    model=initial_version
     flag=False
     while right>=model:      #查找2.3.8版本及其右边的版本范围，右边二分查找原理与左边相同
         with open(target_file, "w+") as fd:
@@ -207,8 +223,7 @@ def main():
     version_link=gen_version()  #产生字典
 
     gen_link=list() #版本号列表
-    gen_version_list(gen_link)
-
+    gen_version_list(gen_link,version_link)
     find_version(version_link,gen_link)  #二分查找具有漏洞的版本范围
 
 
