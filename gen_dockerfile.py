@@ -22,8 +22,9 @@ def add_system(fd, os, os_tag):
 
 def add_update_by_sys(fd, linux):
     if (linux.lower() == "debian" or linux.lower() == "ubuntu" or 
-        linux.lower() == "kali"):
-        fd.write("RUN apt-get -y update && apt-get -y upgrade")
+        linux.lower() == "kali" or 1==1):
+        #暂时去除对系统的判断
+        fd.write("RUN apt -y update && apt -y upgrade")
         fd.write("\n")
     else:
         print(linux + "is not supported for now")
@@ -31,8 +32,10 @@ def add_update_by_sys(fd, linux):
 
 def install_dep_by_sys(fd, linux, package):
     if (linux.lower() == "debian" or linux.lower() == "ubuntu" or 
-        linux.lower() == "kali"):
-        fd.write("RUN apt-get -y install build-essential " + package)
+        linux.lower() == "kali" or 1==1):
+        #暂时去除对系统的判断
+        #不再默认安装build-essential软件包
+        fd.write("RUN apt -y install " + package)
         fd.write("\n")
     else:
         print(linux + "is not supported for now")
@@ -66,12 +69,11 @@ def install_program(fd, prog_link, compile_method, prog_install):
     fd.write("cd targetsoftware; \\" )
     fd.write("\n")
 
-    if compile_method == "make":
-        fd.write("make && ")
-        fd.write(prog_install)
-        fd.write("; \n")
-    else :
-        print(compile_method, "is not supported")
+    fd.write(compile_method)
+    fd.write(" && ")
+    fd.write(prog_install)
+    fd.write("; \n")
+    
 def deploy_poc(fd, poc_link, deploy):
     fd.write("RUN wget " + poc_link + "; \\")
     fd.write("\n")
@@ -84,7 +86,8 @@ def add_trigger_method(fd, trigger):
 
 def clean_cache_by_sys(fd, linux):
     if (linux.lower() == "debian" or linux.lower() == "ubuntu" or 
-        linux.lower() == "kali"):
+        linux.lower() == "kali" or 1==1):
+        #暂时去除对系统的判断
         fd.write("RUN rm -rf /var/lib/apt/lists")
         fd.write("\n")
     else:

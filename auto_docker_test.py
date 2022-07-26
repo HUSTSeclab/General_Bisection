@@ -3,17 +3,21 @@
 from gen_dockerfile import *
 from functools import *
 import subprocess
+import pickle
+import pprint
 #生成的配置文件的文件名
 target_file='config.ini'
 #创建镜像和运行容器的命令
-build_cmd=r'sudo docker build -t a_image_docker /home/seed'
+build_cmd=r'sudo docker build -t a_image_docker .'
 run_cmd=r'sudo docker run a_image_docker'
+#测试的软件名
+software='latex2rtf'
 
 #environment
 #参数：sys,sys_tag,update,dependencies,workspace
 def gen_environment (fd):   #生成ini文件中的Environment项
-    sys='debian'
-    sys_tag='latest'
+    sys='liruochen2008/ready_for_exp'
+    sys_tag='v1.2'
     update='yes'
     dependencies='wget texinfo'
     workspace='/root'
@@ -34,7 +38,7 @@ def gen_environment (fd):   #生成ini文件中的Environment项
 #source code
 #参数：compilation,install,vul_binary_pos
 def gen_source_code(fd,version_link,gen_link,version_number):    #生成ini文件中的Source Code项
-    compilation='make'
+    compilation='(make || :)'
     install='make install || (cp /root/targetsoftware/latex2rtf /usr/local/bin/ && mkdir /usr/local/share/latex2rtf && cp -r /root/targetsoftware/cfg/ /usr/local/share/latex2rtf/cfg/)'
 #Bugs about installing latex2rtf:
 #     "  If you nevertheless need to run install from the sources, note the following:
@@ -60,7 +64,7 @@ def gen_source_code(fd,version_link,gen_link,version_number):    #生成ini文�
 #参数：link,deploy,trigger
 #注意，若没有deploy命令，则用空指令:填充
 def gen_PoC(fd):    #生成ini文件中的PoC项
-    link='https://raw.githubusercontent.com/liruochen-coding/LinuxFlaw/master/CVE-2015-8106/exploit.tex'
+    link='https://gitee.com/liruochen2008/LinuxFlaw/raw/master/CVE-2015-8106/exploit.tex'
     deploy=':'
     trigger='latex2rtf exploit.tex'
 
@@ -75,31 +79,20 @@ def gen_PoC(fd):    #生成ini文件中的PoC项
     
 #version dictionary
 #将软件的版本号和对应的下载链接存入字典
-def gen_version():     #版本号与下载链接作为键值对所对应的字典，版本2.3.9不存在
-    version_link=dict()
-    version_link['2.0.0']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.0.0/latex2rtf-2.0.0.tar.gz'
-    version_link['2.1.0']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.1.0/latex2rtf-2.1.0.tar.gz'
-    version_link['2.1.1']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.1.1/latex2rtf-2.1.1beta8.tar.gz'
-    version_link['2.2.0']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.2.0/latex2rtf-2.2.0.tar.gz'
-    version_link['2.2.1']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.2.1/latex2rtf-2.2.1.tar.gz'
-    version_link['2.3.0']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.0/latex2rtf-2.3.0.tar.gz'
-    version_link['2.3.1']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.1/latex2rtf-2.3.1.tar.gz'
-    version_link['2.3.2']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.2/latex2rtf-2.3.2.tar.gz'
-    version_link['2.3.3']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.3/latex2rtf-2.3.3.tar.gz'
-    version_link['2.3.4']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.4/latex2rtf-2.3.4.tar.gz'
-    version_link['2.3.5']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.5/latex2rtf-2.3.5.tar.gz'
-    version_link['2.3.6']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.6/latex2rtf-2.3.6.tar.gz'
-    version_link['2.3.7']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.7/latex2rtf-2.3.7a.tar.gz'
-    version_link['2.3.8']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.8/latex2rtf-2.3.8.tar.gz'
-    #version_link['2.3.10']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.10/latex2rtf-2.3.10.tar.gz'
-    version_link['2.3.11']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.11/latex2rtf-2.3.11a.tar.gz'
-    version_link['2.3.12']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.12/latex2rtf-2.3.12.tar.gz'
-    version_link['2.3.13']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.13/latex2rtf-2.3.13a.tar.gz'
-    version_link['2.3.14']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.14/latex2rtf-2.3.14.tar.gz'
-    version_link['2.3.15']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.15/latex2rtf-2.3.15.tar.gz'
-    version_link['2.3.16']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.16/latex2rtf-2.3.16.tar.gz'
-    version_link['2.3.17']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.17/latex2rtf-2.3.17.tar.gz'
-    version_link['2.3.18']='https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.18/latex2rtf-2.3.18a.tar.gz'
+def gen_version():     
+    #提取存放在文件中的版本号与下载链接的字典
+    #pickle文件中数据的格式：[[dict1,name1],[dict2,name2],[dict3,name3],...]  其中dict均为字典，name均为软件名字符串
+    pkl_file=open('data.pkl','rb+')
+    whole_list=pickle.load(pkl_file)
+    #whole_list是一个列表
+    for x in whole_list:
+        #x也是列表
+        if x[1]==software:
+            #x第0项是字典，第1项是软件名
+            version_link=x[0]
+        else:
+            #如果找不到就返回1
+            version_link=1
     return version_link
 
 
@@ -221,10 +214,12 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
 
 def main():
     version_link=gen_version()  #产生字典
-
-    gen_link=list() #版本号列表
-    gen_version_list(gen_link,version_link)
-    find_version(version_link,gen_link)  #二分查找具有漏洞的版本范围
+    if version_link==1:
+        print('software '+software+' was not included in the pickle file!\n')
+    else:
+        gen_link=list() #版本号列表
+        gen_version_list(gen_link,version_link)
+        find_version(version_link,gen_link)  #二分查找具有漏洞的版本范围
 
 
 if __name__=='__main__':
