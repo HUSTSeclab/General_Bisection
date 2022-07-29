@@ -182,7 +182,8 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
                 result0=subprocess.run(build_cmd,shell=True,stdout=subprocess.PIPE)
                 if result0.returncode!=0: #容器创建失败
                     flag=False
-                    print("falied to build the docker "+gen_link[mid]+"!")
+                    print("----------falied to build the docker "+gen_link[mid]+"!")
+                    return 0
                 else:                     #容器创建成功
                     flag=True
                     print("Sucessfully build the docker "+gen_link[mid]+"!")
