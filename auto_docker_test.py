@@ -10,18 +10,66 @@ target_file='config.ini'
 #创建镜像和运行容器的命令
 build_cmd=r'sudo docker build -t a_image_docker .'
 run_cmd=r'sudo docker run a_image_docker'
-#测试的软件名
-software='latex2rtf'
+
+#是否从文件读取软件字典，1代表是
+software_load_from_pkl=1
+#是否从文件读取测试步骤，1代表是
+step_load_from_pkl=1
+
+#测试的相关信息和步骤
+id='CVE20158106'  #必填，以便程序自动从文件中读取其余信息
+#如果不从文件读取测试步骤，则需手动填写以下全局变量
+software=''
+start=''        #以哪个版本为起点开始二分测试
+sys=''
+sys_tag=''
+update=''
+dependencies=''
+workspace=''
+compilation=''
+install=''
+vul_binary_pos=''
+link=''
+deploy=''
+trigger=''
+
+#如果不从文件读取软件列表，则需手动创建
+version_link=dict()
+
+
+def load_step():
+    #从文件读取测试步骤
+    outcome=0  #找到对应信息返回0，没找到返回1
+    global id,software,start,sys,sys_tag,update,dependencies,workspace,compilation,install,vul_binary_pos,link,deploy,trigger
+    pkl_file=open('step.pkl','rb')
+    step=pickle.load(pkl_file)
+    for x in step:
+        if x['id']==id:
+            #找到对应id，开始读取信息
+            software=x['software']
+            start=x['start']
+            sys=x['sys']
+            sys_tag=x['sys_tag']
+            update=x['update']
+            dependencies=x['dependencies']
+            workspace=x['workspace']
+            compilation=x['compilation']
+            install=x['install']
+            vul_binary_pos=x['vul_binary_pos']
+            link=x['link']
+            deploy=x['deploy']
+            trigger=x['trigger']
+            outcome=0
+            break
+        else:
+            outcome=1
+    return outcome
+
 
 #environment
 #参数：sys,sys_tag,update,dependencies,workspace
 def gen_environment (fd):   #生成ini文件中的Environment项
-    sys='liruochen2008/ready_for_exp'
-    sys_tag='v1.2'
-    update='yes'
-    dependencies='wget texinfo'
-    workspace='/root'
-
+    global sys,sys_tag,update,dependencies,workspace
     fd.write('[Environment]\n')
     fd.write("sys : "+sys)
     fd.write("\n")
@@ -38,17 +86,7 @@ def gen_environment (fd):   #生成ini文件中的Environment项
 #source code
 #参数：compilation,install,vul_binary_pos
 def gen_source_code(fd,version_link,gen_link,version_number):    #生成ini文件中的Source Code项
-    compilation='(make || :)'
-    install='make install || (cp /root/targetsoftware/latex2rtf /usr/local/bin/ && mkdir /usr/local/share/latex2rtf && cp -r /root/targetsoftware/cfg/ /usr/local/share/latex2rtf/cfg/)'
-#Bugs about installing latex2rtf:
-#     "  If you nevertheless need to run install from the sources, note the following:
-#     If your 'mkdir' doesn't support the '-p' option, then create the
-#     necessary directories by hand and remove the option from the
-#     '$MKDIR' variable.  If you have other problems, just copy
-#     'latex2rtf' and 'latex2png' to a binary directory, and move the
-#     contents of the 'cfg/' directory to the location specified by
-#     '$CFG_INSTALL'.  "
-    vul_binary_pos=''
+    global compilation,install,vul_binary_pos
     fd.write('[Source Code]\n')
     fd.write("link : "+version_link[gen_link[version_number]])
     fd.write("\n")
@@ -64,10 +102,7 @@ def gen_source_code(fd,version_link,gen_link,version_number):    #生成ini文�
 #参数：link,deploy,trigger
 #注意，若没有deploy命令，则用空指令:填充
 def gen_PoC(fd):    #生成ini文件中的PoC项
-    link='https://gitee.com/liruochen2008/LinuxFlaw/raw/master/CVE-2015-8106/exploit.tex'
-    deploy=':'
-    trigger='latex2rtf exploit.tex'
-
+    global link,deploy,trigger
     fd.write("[PoC]\n")
     fd.write("link : "+link)
     fd.write("\n")
@@ -81,8 +116,9 @@ def gen_PoC(fd):    #生成ini文件中的PoC项
 #将软件的版本号和对应的下载链接存入字典
 def gen_version():     
     #提取存放在文件中的版本号与下载链接的字典
-    #pickle文件中数据的格式：[[dict1,name1],[dict2,name2],[dict3,name3],...]  其中dict均为字典，name均为软件名字符串
-    pkl_file=open('data.pkl','rb+')
+    #software.pkl文件中数据的格式：[[dict1,name1],[dict2,name2],[dict3,name3],...]  其中dict均为字典，name均为软件名字符串
+    global software
+    pkl_file=open('software.pkl','rb')
     whole_list=pickle.load(pkl_file)
     #whole_list是一个列表
     for x in whole_list:
@@ -90,8 +126,9 @@ def gen_version():
         if x[1]==software:
             #x第0项是字典，第1项是软件名
             version_link=x[0]
+            break
         else:
-            #如果找不到就返回1
+            #没找到就返回1
             version_link=1
     return version_link
 
@@ -118,10 +155,11 @@ def gen_version_list(v_list,version_link):   #将版本号升序存储在列表�
 
 
 def find_version(version_link,gen_link):     #二分查找具有漏洞的版本范围，第一个参数为版本号与链接对应的字典，第二个参数为版本号对应的列表
+    global start
     left=0
     right=len(gen_link)-1
     mid=0      #作为查找左右范围的中间变量
-    initial_version=gen_link.index("2.3.8") #从2.3.8版本开始二分查找漏洞
+    initial_version=gen_link.index(start) #从2.3.8版本开始二分查找漏洞
     model=initial_version   #已知版本2.3.8具有漏洞，从该版本左右各进行范围查找，并将该版本作为左右查找的一个边界
     min_version=initial_version  #具有漏洞的最小版本号,仅当检测到新的有漏洞的版本，才给min_version赋值，故赋初值为8
     max_version=initial_version  #具有漏洞的最大版本号,仅当检测到新的有漏洞的版本，才给min_version赋值，故赋初值为8
@@ -149,13 +187,13 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
                     flag=True
                     print("Sucessfully build the docker "+gen_link[mid]+"!")
 
-                result=subprocess.run(run_cmd,shell=True,stdout=subprocess.PIPE)
-                if result.returncode==139:   #当有漏洞时程序异常终止，returncode返回139
-                    flag=True
-                    print("version "+gen_link[mid]+" exsits the vulnerability !\n")  
-                else :
-                    flag=False          #其他情况代表无漏洞
-                    print("version "+gen_link[mid]+" doesn't exsit the vulnerability !\n")
+                    result=subprocess.run(run_cmd,shell=True,stdout=subprocess.PIPE)
+                    if result.returncode==139:   #当有漏洞时程序异常终止，returncode返回139
+                        flag=True
+                        print("version "+gen_link[mid]+" exsits the vulnerability !\n")  
+                    else :
+                        flag=False          #其他情况代表无漏洞
+                        print("version "+gen_link[mid]+" doesn't exsit the vulnerability !\n")
 
         if flag==True:    #如果该版本有漏洞，则查找的右边界model为该版本序号，同时置最小版本为该版本序号
             model=mid
@@ -190,13 +228,13 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
                 else:
                     flag=True
                     print("Sucessfully build the docker"+gen_link[mid]+"!")
-                result=subprocess.run(run_cmd,shell=True,stdout=subprocess.PIPE)
-                if result.returncode==139:
-                    flag=True 
-                    print("version "+gen_link[mid]+" exsits the vulnerability !\n") 
-                else :
-                    flag=False
-                    print("version "+gen_link[mid]+" doesn't exsit the vulnerability !\n")
+                    result=subprocess.run(run_cmd,shell=True,stdout=subprocess.PIPE)
+                    if result.returncode==139:
+                        flag=True 
+                        print("version "+gen_link[mid]+" exsits the vulnerability !\n") 
+                    else :
+                        flag=False
+                        print("version "+gen_link[mid]+" doesn't exsit the vulnerability !\n")
         if model==right:
             break
         if  flag==False:    #表示该版本没有漏洞
@@ -213,7 +251,15 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
 
 
 def main():
-    version_link=gen_version()  #产生字典
+    global version_link
+    if step_load_from_pkl==1:
+        #从文件读取步骤
+        print('Load steps from local file\n')
+        load_step()
+    if software_load_from_pkl==1:
+        #从文件读取软件字典
+        print('Load software dict from local file\n')
+        version_link=gen_version()  #产生字典
     if version_link==1:
         print('software '+software+' was not included in the pickle file!\n')
     else:
