@@ -11,13 +11,13 @@ target_file='config.ini'
 build_cmd=r'sudo docker build -t a_image_docker .'
 run_cmd=r'sudo docker run a_image_docker'
 
-#是否从文件读取软件字典，1代表是
+#是否从文件读取软件字典，1代表是，0代表否
 software_load_from_pkl=1
-#是否从文件读取测试步骤，1代表是
+#是否从文件读取测试步骤，1代表是，0代表否
 step_load_from_pkl=1
 
 #测试的相关信息和步骤
-id='CVE20158106'  #必填，以便程序自动从文件中读取其余信息
+id='CVE20158106'  #形如CVE20158106，必填，以便程序自动从文件中读取其余信息
 #如果不从文件读取测试步骤，则需手动填写以下全局变量
 software=''
 start=''        #以哪个版本为起点开始二分测试
@@ -252,21 +252,28 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
 
 
 def main():
-    global version_link
+    global version_link,id
     if step_load_from_pkl==1:
         #从文件读取步骤
-        print('Load steps from local file\n')
-        load_step()
+        print('Load steps from local file')
+        if load_step()==1:
+            print('case'+id+'was not included in step.pkl!')
+            return
+    else:
+        print('Load steps manully from the code')
     if software_load_from_pkl==1:
         #从文件读取软件字典
         print('Load software dict from local file\n')
         version_link=gen_version()  #产生字典
-    if version_link==1:
-        print('software '+software+' was not included in the pickle file!\n')
+        if version_link==1:
+            print('software '+software+' was not included in software.pkl!\n')
+            return
     else:
-        gen_link=list() #版本号列表
-        gen_version_list(gen_link,version_link)
-        find_version(version_link,gen_link)  #二分查找具有漏洞的版本范围
+        print('Load software manully from the code')
+
+    gen_link=list() #版本号列表
+    gen_version_list(gen_link,version_link)
+    find_version(version_link,gen_link)  #二分查找具有漏洞的版本范围
 
 
 if __name__=='__main__':
