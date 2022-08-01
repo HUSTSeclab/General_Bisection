@@ -34,8 +34,14 @@ deploy=''
 trigger=''
 
 #如果不从文件读取软件列表，则需手动创建
-version_link=dict()
+if software_load_from_pkl==0:
+    version_link=dict()
 
+#在remove列表中添加需要在测试中排除的版本号
+remove=['1.9.17','1.9.18','1.9.19']
+if software_load_from_pkl==0:
+    for x in remove:
+        del version_link[x]
 
 def load_step():
     #从文件读取测试步骤
@@ -117,7 +123,7 @@ def gen_PoC(fd):    #生成ini文件中的PoC项
 def gen_version():     
     #提取存放在文件中的版本号与下载链接的字典
     #software.pkl文件中数据的格式：[[dict1,name1],[dict2,name2],[dict3,name3],...]  其中dict均为字典，name均为软件名字符串
-    global software
+    global software,remove
     pkl_file=open('software.pkl','rb')
     whole_list=pickle.load(pkl_file)
     #whole_list是一个列表
@@ -130,6 +136,11 @@ def gen_version():
         else:
             #没找到就返回1
             version_link=1
+    #删除字典中测试需要排除的键值对        
+    if version_link!=1:
+        for x in remove:
+            del version_link[x]
+    
     return version_link
 
 
@@ -263,7 +274,7 @@ def main():
         print('Load steps manully from the code')
     if software_load_from_pkl==1:
         #从文件读取软件字典
-        print('Load software dict from local file\n')
+        print('Load software dict from local file')
         version_link=gen_version()  #产生字典
         if version_link==1:
             print('software '+software+' was not included in software.pkl!\n')
