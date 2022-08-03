@@ -1,18 +1,18 @@
-#漏洞影响版本：2.1.1至2.3.8
+#漏洞影响版本：1.9.11（1.9k）至1.9.15
 FROM liruochen2008/ready_for_exp:v1.2
 MAINTAINER "Dongliang Mu" <mudongliangabcd@gmail.com>
 RUN apt -y update && apt -y upgrade
 RUN apt -y install wget texinfo
 WORKDIR /root
-RUN wget https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/2.3.8/latex2rtf-2.3.8.tar.gz; \
+RUN wget https://sourceforge.net/projects/latex2rtf/files/latex2rtf-unix/1.9.15/latex2rtf-1.9.15.tar.gz; \
 mkdir targetsoftware; \
-tar -xvf latex2rtf-2.3.8.tar.gz -C targetsoftware --strip-components 1; \
+tar -xvf latex2rtf-1.9.15.tar.gz -C targetsoftware --strip-components 1; \
 cd targetsoftware; \
-(make || :) && make install || (cp /root/targetsoftware/latex2rtf /usr/local/bin/ && mkdir /usr/local/share/latex2rtf && cp -r /root/targetsoftware/cfg/ /usr/local/share/latex2rtf/cfg/); 
-RUN wget https://gitee.com/liruochen2008/LinuxFlaw/raw/master/CVE-2015-8106/exploit.tex; \
-:
+(make || :) && (make install || :) && ((cp /root/targetsoftware/latex2rtf /usr/local/bin/ && (mkdir /usr/local/share/latex2rtf || :) && cp -r /root/targetsoftware/cfg/ /usr/local/share/latex2rtf/cfg/ && cp -r /root/targetsoftware/cfg/ /usr/local/lib/latex2rtf/) || :); 
+RUN wget https://gitee.com/liruochen2008/for_download/raw/master/code/latex2rtf.c https://gitee.com/liruochen2008/for_download/raw/master/code/poc.tex; \
+gcc -o exploit latex2rtf.c
 RUN rm -rf /var/lib/apt/lists
-CMD latex2rtf exploit.tex
+CMD (./exploit > poc.tex) && (latex2rtf poc.tex)
 
 #latex2rtf软件的1.8(1.8aa),1.9.3(1.9c),1.9.4(1.9d),1.9.5(1.9e),1.9.6(1.9f),1.9.7(1.9g),1.9.8(1.9h),1.9.9(1.9i),1.9.10(1.9j),1.9.12,1.9.17,1.9.18,1.9.19版本无法通过编译或有无法正常运行的bug，在测试中应当去除
 
@@ -23,4 +23,4 @@ CMD latex2rtf exploit.tex
 #     '$MKDIR' variable.  If you have other problems, just copy
 #     'latex2rtf' and 'latex2png' to a binary directory, and move the
 #     contents of the 'cfg/' directory to the location specified by
-#     '$CFG_INSTALL'.  "
+#     '$CFG_INSTALL'.  " 对于早期版本，该目录为LIBDIR

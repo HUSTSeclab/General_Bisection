@@ -17,7 +17,7 @@ software_load_from_pkl=1
 step_load_from_pkl=1
 
 #测试的相关信息和步骤
-id='CVE20158106'  #形如CVE20158106，必填，以便程序自动从文件中读取其余信息
+id='CVE20042167'  #形如CVE20158106，必填，以便程序自动从文件中读取其余信息
 #如果不从文件读取测试步骤，则需手动填写以下全局变量
 software=''
 start=''        #以哪个版本为起点开始二分测试
@@ -38,7 +38,7 @@ if software_load_from_pkl==0:
     version_link=dict()
 
 #在remove列表中添加需要在测试中排除的版本号
-remove=['1.9.17','1.9.18','1.9.19']
+remove=['1.8','1.9.3','1.9.4','1.9.5','1.9.6','1.9.7','1.9.8','1.9.9','1.9.10','1.9.12','1.9.17','1.9.18','1.9.19']
 if software_load_from_pkl==0:
     for x in remove:
         del version_link[x]
