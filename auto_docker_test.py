@@ -11,6 +11,9 @@ target_file='config.ini'
 build_cmd=r'sudo docker build -t a_image_docker .'
 run_cmd=r'sudo docker run a_image_docker'
 
+#触发漏洞后，进程的返回值
+returncode=139
+
 #是否从文件读取软件字典，1代表是，0代表否
 software_load_from_pkl=1
 #是否从文件读取测试步骤，1代表是，0代表否
@@ -166,7 +169,7 @@ def gen_version_list(v_list,version_link):   #将版本号升序存储在列表�
 
 
 def find_version(version_link,gen_link):     #二分查找具有漏洞的版本范围，第一个参数为版本号与链接对应的字典，第二个参数为版本号对应的列表
-    global start
+    global start,returncode
     left=0
     right=len(gen_link)-1
     mid=0      #作为查找左右范围的中间变量
@@ -200,7 +203,7 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
                     print("Sucessfully build the docker "+gen_link[mid]+"!")
 
                     result=subprocess.run(run_cmd,shell=True,stdout=subprocess.PIPE)
-                    if result.returncode==139:   #当有漏洞时程序异常终止，returncode返回139
+                    if result.returncode==returncode:   #当有漏洞时程序异常终止，returncode返回139
                         flag=True
                         print("version "+gen_link[mid]+" exsits the vulnerability !\n")  
                     else :
@@ -241,7 +244,7 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
                     flag=True
                     print("Sucessfully build the docker"+gen_link[mid]+"!")
                     result=subprocess.run(run_cmd,shell=True,stdout=subprocess.PIPE)
-                    if result.returncode==139:
+                    if result.returncode==returncode:
                         flag=True 
                         print("version "+gen_link[mid]+" exsits the vulnerability !\n") 
                     else :
