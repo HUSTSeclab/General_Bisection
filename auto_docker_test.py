@@ -3,8 +3,8 @@
 from gen_dockerfile import *
 from functools import *
 import subprocess
-import pickle
 import pprint
+import sqlite3
 #生成的配置文件的文件名
 target_file='config.ini'
 #创建镜像和运行容器的命令
@@ -14,14 +14,14 @@ run_cmd=r'sudo docker run a_image_docker'
 #触发漏洞后，进程的返回值
 returncode=139
 
-#是否从文件读取软件字典，1代表是，0代表否
-software_load_from_pkl=1
-#是否从文件读取测试步骤，1代表是，0代表否
-step_load_from_pkl=1
+#是否从数据库读取软件字典，1代表是，0代表否
+software_load_from_db=1
+#是否从数据库读取测试步骤，1代表是，0代表否
+step_load_from_db=1
 
 #测试的相关信息和步骤
-id='CVE20042167'  #形如CVE20158106，必填，以便程序自动从文件中读取其余信息
-#如果不从文件读取测试步骤，则需手动填写以下全局变量
+id='CVE20158106'  #形如CVE20158106，必填，以便程序自动从文件中读取其余信息
+#如果不从数据库读取测试步骤，则需手动填写以下全局变量
 software=''
 start=''        #以哪个版本为起点开始二分测试
 sys=''
@@ -37,41 +37,40 @@ deploy=''
 trigger=''
 
 #如果不从文件读取软件列表，则需手动创建
-if software_load_from_pkl==0:
+if software_load_from_db==0:
     version_link=dict()
 
-#在remove列表中添加需要在测试中排除的版本号
-remove=['1.8','1.9.3','1.9.4','1.9.5','1.9.6','1.9.7','1.9.8','1.9.9','1.9.10','1.9.12','1.9.17','1.9.18','1.9.19']
-if software_load_from_pkl==0:
-    for x in remove:
-        del version_link[x]
 
 def load_step():
-    #从文件读取测试步骤
+    #从数据库读取测试步骤
     outcome=0  #找到对应信息返回0，没找到返回1
     global id,software,start,sys,sys_tag,update,dependencies,workspace,compilation,install,vul_binary_pos,link,deploy,trigger
-    pkl_file=open('step.pkl','rb')
-    step=pickle.load(pkl_file)
-    for x in step:
-        if x['id']==id:
-            #找到对应id，开始读取信息
-            software=x['software']
-            start=x['start']
-            sys=x['sys']
-            sys_tag=x['sys_tag']
-            update=x['update']
-            dependencies=x['dependencies']
-            workspace=x['workspace']
-            compilation=x['compilation']
-            install=x['install']
-            vul_binary_pos=x['vul_binary_pos']
-            link=x['link']
-            deploy=x['deploy']
-            trigger=x['trigger']
-            outcome=0
-            break
-        else:
-            outcome=1
+    db=sqlite3.connect('VulnerabilityData.db')
+    c=db.cursor()
+    cursor=c.execute("SELECT * FROM steps WHERE id LIKE '"+id+"';")
+    result=cursor.fetchall()
+    if (result==[]):
+        #sql did not match any row in the database
+        outcome=1
+    else:
+        tup=result[0]
+        software=tup[1]
+        start=tup[2]
+        sys=tup[3]
+        sys_tag=tup[4]
+        update=tup[5]
+        dependencies=tup[6]
+        workspace=tup[7]
+        compilation=tup[8]
+        install=tup[9]
+        vul_binary_pos=tup[10]
+        link=tup[11]
+        deploy=tup[12]
+        trigger=tup[13]
+        outcome=0
+
+    db.close()
+
     return outcome
 
 
@@ -124,26 +123,23 @@ def gen_PoC(fd):    #生成ini文件中的PoC项
 #version dictionary
 #将软件的版本号和对应的下载链接存入字典
 def gen_version():     
-    #提取存放在文件中的版本号与下载链接的字典
-    #software.pkl文件中数据的格式：[[dict1,name1],[dict2,name2],[dict3,name3],...]  其中dict均为字典，name均为软件名字符串
-    global software,remove
-    pkl_file=open('software.pkl','rb')
-    whole_list=pickle.load(pkl_file)
-    #whole_list是一个列表
-    for x in whole_list:
-        #x也是列表
-        if x[1]==software:
-            #x第0项是字典，第1项是软件名
-            version_link=x[0]
-            break
-        else:
-            #没找到就返回1
-            version_link=1
-    #删除字典中测试需要排除的键值对        
-    if version_link!=1:
-        for x in remove:
-            del version_link[x]
-    
+    #提取数据库中的版本号与下载链接
+    global software
+    db=sqlite3.connect('VulnerabilityData.db')
+    c=db.cursor()
+    cursor=c.execute("SELECT * FROM "+software+";")
+    result=cursor.fetchall()
+    if (result==[]):
+        #sql find nothing
+        version_link=1
+    else:
+        version_link=dict()
+        for row in result:
+            #version valid or not
+            if (row[2]==1):
+                version_link[row[0]]=row[1]
+
+    db.close()
     return version_link
 
 
@@ -267,21 +263,26 @@ def find_version(version_link,gen_link):     #二分查找具有漏洞的版本�
 
 def main():
     global version_link,id
-    if step_load_from_pkl==1:
+    if step_load_from_db==1:
         #从文件读取步骤
-        print('Load steps from local file')
+        print('Load steps from database')
         if load_step()==1:
-            print('case'+id+'was not included in step.pkl!')
+            print('case'+id+'was not included in the database!')
             return
+        print(software)
+        print(install)
+        print("\n")
     else:
         print('Load steps manully from the code')
-    if software_load_from_pkl==1:
+    if software_load_from_db==1:
         #从文件读取软件字典
-        print('Load software dict from local file')
+        print('Load software dict from database')
         version_link=gen_version()  #产生字典
         if version_link==1:
-            print('software '+software+' was not included in software.pkl!\n')
+            print('software '+software+' was not included in the database!\n')
             return
+        pprint.pprint(version_link)
+        print("\n")
     else:
         print('Load software manully from the code')
 
